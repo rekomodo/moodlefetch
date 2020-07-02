@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Moodle Fetcher</title>
+		<link
+			rel="stylesheet"
+			href="http://cdn.datatables.net/1.10.21/css/jquery.dataTables.min.css"
+		/>
+		<link
+			rel="stylesheet"
+			href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
+			integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk"
+			crossorigin="anonymous"
+		/>
+		<link rel="stylesheet" href="./main.css" />
+	</head>
+	<body>
+		<div class="container-fluid">
+			<table
+				class="table table-bordered table-light table-hover"
+				id="mainTable"
+			>
+				<thead class="thead-light">
+					<tr>
+						<th>Class</th>
+						<th>Assignment</th>
+						<th>Submission</th>
+						<th>Due Date</th>
+						<th>Time Remaining</th>
+					</tr>
+				</thead>
+				<tbody></tbody>
+			</table>
+			<div class="container-fluid fixed-bottom">
+				<div class="form-group">
+					<input
+						type="text"
+						id="searchbox"
+						class="form-control"
+						autofocus
+						placeholder="Search"
+					/>
+				</div>
+				<div class="form-check">
+					<label class="label">
+						Hide Overdue
+						<input
+							type="checkbox"
+							class="form-check-inline"
+							id="hideOverdue"
+						/>
+					</label>
+					<label>
+						Hide Submitted
+						<input
+							type="checkbox"
+							class="form-check-inline"
+							id="hideSubmitted"
+						/>
+					</label>
+				</div>
+			</div>
+		</div>
+		<script>
+			const request = require("request");
+			const electron = require("electron");
+			const { ipcRenderer, shell } = electron;
+			var $ = require("jquery");
+			require("datatables.net-bs4")();
+			require("datatables.net-responsive-bs4")();
+			require("datatables.net-scroller-bs4")();
+			const scrape = require("./scrape.js");
+			var table;
+			var removedOverdues = [];
+			var removedSubmitted = [];
+			var links = {};
+
+			$(document).ready(() => {
+				table = $("#mainTable").DataTable({
+					dom: "t",
+					bInfo: false,
+					scrollY: "70vh",
+					scrollCollapse: true,
+					paging: false,
+					searching: true,
+					language: {
+						emptyTable: " ",
+					},
+					columnDefs: [
+						{
+							targets: 1,
+							createdCell: function (td) {
+								$(td).html(
+									`<button class="container btn" 
+									onClick="goToSite(this)">
+									${$(td).text()}
+									</button>`
+								);
+							},
+						},
+					],
+				});
+			});
+
+			$("#searchbox").on("keyup search input paste cut", function () {
+				table.search(this.value).draw();
+			});
+
+			ipcRenderer.on("createTable", function (e, data) {
+				table.clear();
+				links = data[data.length - 1];
+				table.rows.add(data.slice(0, data.length - 1));
+				table.draw();
+			});
+
+			function goToSite(button) {
+				var assignmentName = $(button).text().trim();
+				shell.openExternal(links[assignmentName]);
+			}
+		</script>
+		<script>
+			$("#hideOverdue").change(function () {
+				var checked = this.checked;
+				if (checked) {
+					var indexes = table
+						.rows()
+						.indexes()
+						.filter(function (value, index) {
+							return table
+								.row(value)
+								.data()[4]
+								.includes("overdue");
+						});
+
+					var data = table.rows(indexes).data();
+					for (let i = 0; i < data.length; i++) {
+						removedOverdues.push(data[i]);
+					}
+					table.rows(indexes).remove().draw();
+				} else {
+					table.rows.add(removedOverdues);
+					removedOverdues = [];
+				}
+				table.draw();
+			});
+
+			$("#hideSubmitted").change(function () {
+				var checked = this.checked;
+				if (checked) {
+					var indexes = table
+						.rows()
+						.indexes()
+						.filter(function (value, index) {
+							return table
+								.row(value)
+								.data()[2]
+								.includes("Submitted");
+						});
+
+					var data = table.rows(indexes).data();
+					for (let i = 0; i < data.length; i++) {
+						removedSubmitted.push(data[i]);
+					}
+					table.rows(indexes).remove().draw();
+				} else {
+					table.rows.add(removedSubmitted);
+					removedSubmitted = [];
+				}
+				table.draw();
+			});
+		</script>
+	</body>
+</html>

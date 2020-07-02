@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Login</title>
+		<link
+			rel="stylesheet"
+			href="http://cdn.datatables.net/1.10.21/css/jquery.dataTables.min.css"
+		/>
+		<link
+			rel="stylesheet"
+			href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
+			integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk"
+			crossorigin="anonymous"
+		/>
+		<link rel="stylesheet" href="./main.css" />
+		<script
+			type="text/javascript"
+			src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.3"
+		></script>
+
+		<script
+			type="text/javascript"
+			src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.9.2/jquery-ui.min.js"
+		></script>
+	</head>
+	<body>
+		<div class="container center jumbotron shadow-lg">
+			<h2 class="text-center" style="padding-bottom: 1em;">
+				Log In with Moodle
+			</h2>
+			<form>
+				<div class="form-group">
+					<input
+						class="form-control"
+						type="text"
+						id="user"
+						autofocus
+						placeholder="Id"
+					/>
+					<input
+						class="form-control"
+						type="password"
+						id="pass"
+						placeholder="Password"
+					/>
+				</div>
+				<button type="submit" class="btn btn-primary btn-lg btn-block">
+					Login
+				</button>
+			</form>
+		</div>
+		<script>
+			const electron = require("electron");
+			const { ipcRenderer } = electron;
+			const form = document.querySelector("form");
+			var $ = require("jquery");
+			form.addEventListener("submit", submitForm);
+
+			function submitForm(e) {
+				//prevents submission from going to a file
+				e.preventDefault();
+				const user = document.querySelector("#user").value;
+				const pass = document.querySelector("#pass").value;
+				const button = document.querySelector("button");
+				button.classList.add("disabled");
+				button.innerHTML = `<span
+						class="spinner-border spinner-border-sm disabled"
+						id="spinner"
+						role="status"
+						aria-hidden="true"
+					></span>
+					Login`;
+				ipcRenderer.send("login", { user: user, pass: pass });
+			}
+		</script>
+	</body>
+</html>

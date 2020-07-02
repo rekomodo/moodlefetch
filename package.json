@@ -1,0 +1,24 @@
+{
+  "name": "moodle-fetch",
+  "version": "1.0.0",
+  "description": "Fetches assignments from moodle.",
+  "main": "index.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "author": "Jair Santana",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^9.0.4",
+    "prettier": "2.0.5"
+  },
+  "dependencies": {
+    "datatables.net": "^1.10.21",
+    "datatables.net-bs4": "^1.10.21",
+    "datatables.net-dt": "^1.10.21",
+    "datatables.net-responsive-bs4": "^2.2.5",
+    "datatables.net-scroller-bs4": "^2.0.2",
+    "jquery": "^3.5.1",
+    "puppeteer": "^4.0.1"
+  }
+}
