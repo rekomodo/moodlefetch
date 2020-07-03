@@ -116,7 +116,9 @@
 				//links[assignmentName] = assignment.link
 				links[data[1]] = data[data.length - 1];
 				table.row.add(data.slice(0, data.length - 1));
+				scrollPos = $(".dataTables_scrollBody").scrollTop();
 				table.draw();
+				$(".dataTables_scrollBody").scrollTop(scrollPos);
 			});
 
 			function goToSite(button) {
