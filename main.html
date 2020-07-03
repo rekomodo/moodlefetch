@@ -101,6 +101,10 @@
 							},
 						},
 					],
+					createdRow: function (tr) {
+						console.log("papa");
+						$(tr).hide().prependTo("table tbody").fadeIn("slow");
+					},
 				});
 			});
 
