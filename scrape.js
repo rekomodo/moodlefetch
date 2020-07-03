@@ -3,6 +3,11 @@ const puppeteer = require("puppeteer");
 var start = timeNow();
 var navTime = 0;
 var browser = null;
+var mainWindow;
+var traduction = {
+	"No entregado": "No attempt",
+	"Enviado para calificar": "Submitted for grading",
+};
 
 function timeNow() {
 	return new Date().getTime() / 1000;
@@ -51,8 +56,8 @@ async function getClassLinks() {
 	return classes;
 }
 
-async function getClassAssignments(classLink, newPage) {
-	await newPage.goto(classLink);
+async function getClassAssignments(classData, newPage) {
+	await newPage.goto(classData.link);
 	const assignments = await newPage.$$eval(".instancename", (elements) => {
 		var returnList = [];
 		for (let i = 0; i < elements.length; i++) {
@@ -64,9 +69,10 @@ async function getClassAssignments(classLink, newPage) {
 			}
 			var assignmentName = elements[i].innerText.trim();
 			assignmentName = assignmentName.split(" ");
-			assignmentName = assignmentName
-				.slice(0, assignmentName.length)
-				.join(" ");
+			assignmentName = assignmentName.slice(0, assignmentName.length);
+			assignmentName.pop();
+			assignmentName = assignmentName.join(" ");
+
 			const assignmentLink = elements[i].parentElement.getAttribute(
 				"href"
 			);
@@ -80,14 +86,11 @@ async function getClassAssignments(classLink, newPage) {
 
 	var dataPromises = [];
 	for (let i = 0; i < assignments.length; i++) {
+		assignments[i]["class"] = classData.name;
 		var p = new Promise(async (resolve) => {
 			var newPage = await browser.newPage();
 			await setupAbortion(newPage);
-			const status = await getAssignmentData(
-				assignments[i].link,
-				newPage
-			);
-			assignments[i].status = status;
+			await getAssignmentData(assignments[i], newPage);
 			await newPage.close();
 			resolve("Success");
 		});
@@ -97,8 +100,8 @@ async function getClassAssignments(classLink, newPage) {
 	return assignments;
 }
 
-async function getAssignmentData(assignmentLink, newPage) {
-	await newPage.goto(assignmentLink);
+async function getAssignmentData(assignment, newPage) {
+	await newPage.goto(assignment.link);
 
 	const status = await newPage.$$eval("td", (elements) => {
 		var returnObj = {};
@@ -121,7 +124,22 @@ async function getAssignmentData(assignmentLink, newPage) {
 		}
 		return returnObj;
 	});
-	return status;
+	assignment["status"] = status;
+	var dataArray = [];
+	dataArray.push(assignment.class, assignment.name);
+	for (let k = 0; k < Object.values(assignment.status).length; k++) {
+		const prop = Object.values(assignment.status)[k];
+		if (traduction.hasOwnProperty(prop)) {
+			dataArray.push(traduction[prop]);
+		} else {
+			dataArray.push(prop);
+		}
+	}
+	for (let k = dataArray.length; k <= 5; k++) {
+		dataArray.push("none");
+	}
+	dataArray.push(assignment.link);
+	mainWindow.webContents.send("createTable", dataArray);
 }
 
 async function setupAbortion(page) {
@@ -141,56 +159,17 @@ async function setupAbortion(page) {
 	});
 }
 
-function allClassDataToArray(data) {
-	var traduction = {
-		"No entregado": "No attempt",
-		"Enviado para calificar": "Submitted for grading",
-	};
-	returnArray = [];
-	links = {};
-	for (let i = 0; i < data.length; i++) {
-		const className = data[i].name;
-		for (let j = 0; j < data[i].assignments.length; j++) {
-			newArray = [];
-			const assignment = data[i].assignments[j];
-			assignment.name = assignment.name.split(" ");
-			assignment.name.pop();
-			assignment.name = assignment.name.join(" ");
-
-			newArray.push(className, assignment.name);
-			links[assignment.name] = assignment.link;
-			for (let k = 0; k < Object.values(assignment.status).length; k++) {
-				const prop = Object.values(assignment.status)[k];
-				if (traduction.hasOwnProperty(prop)) {
-					newArray.push(traduction[prop]);
-				} else {
-					newArray.push(prop);
-				}
-			}
-			for (let k = newArray.length; k <= 5; k++) {
-				newArray.push("none");
-			}
-			returnArray.push(newArray);
-		}
-	}
-	returnArray.push(links);
-	return returnArray;
-}
-
-async function fullResponse() {
+async function fullResponse(window) {
+	mainWindow = window;
 	navTime = 0;
 	start = timeNow();
 	const classes = await getClassLinks();
-	var allClassData = [];
 	var dataPromises = [];
 	for (let i = 0; i < classes.length; i++) {
-		const classLink = classes[i].link;
-		allClassData.push({ name: classes[i].name });
 		var p = new Promise(async (resolve) => {
 			var newPage = await browser.newPage();
 			await setupAbortion(newPage);
-			const assignments = await getClassAssignments(classLink, newPage);
-			allClassData[i].assignments = assignments;
+			await getClassAssignments(classes[i], newPage);
 			await newPage.close();
 			resolve("Success");
 		});
@@ -199,11 +178,8 @@ async function fullResponse() {
 	await Promise.all(dataPromises);
 	console.log(`Total time spent: ${timeNow() - start}`);
 	console.log(`Time spent on navigation: ${navTime}`);
-	return allClassDataToArray(allClassData);
 }
 //better scraping
-//make login request and separate getting classes and assignments
-//look for the class teacher
 
 module.exports = {
 	setup: setup,

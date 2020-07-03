@@ -75,9 +75,9 @@ async function trySetup(browserPath) {
 //catch login
 ipcMain.on("login", async (e, { user, pass }) => {
 	await scrape.login(user, pass);
-	var data = await scrape.fullResponse();
-	createMainWindow(data);
+	createMainWindow();
 	loginWindow.close();
+	await scrape.fullResponse(mainWindow);
 });
 
 function createMainWindow(tableData) {
@@ -94,9 +94,6 @@ function createMainWindow(tableData) {
 		})
 	);
 
-	mainWindow.webContents.on("did-finish-load", () => {
-		mainWindow.webContents.send("createTable", tableData);
-	});
 	//quit app when window is closed
 	mainWindow.on("closed", () => {
 		app.quit();

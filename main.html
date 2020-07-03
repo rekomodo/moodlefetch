@@ -109,9 +109,9 @@
 			});
 
 			ipcRenderer.on("createTable", function (e, data) {
-				table.clear();
-				links = data[data.length - 1];
-				table.rows.add(data.slice(0, data.length - 1));
+				//links[assignmentName] = assignment.link
+				links[data[1]] = data[data.length - 1];
+				table.row.add(data.slice(0, data.length - 1));
 				table.draw();
 			});
 
