@@ -4,6 +4,7 @@ var start = timeNow();
 var navTime = 0;
 var browser = null;
 var mainWindow;
+var page;
 var traduction = {
 	"No entregado": "No attempt",
 	"Enviado para calificar": "Submitted for grading",
